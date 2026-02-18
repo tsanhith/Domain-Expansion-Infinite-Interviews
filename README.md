@@ -4,17 +4,24 @@ A stateful job-application automation system that treats your placement hunt lik
 
 ## Is it finished?
 
+Not fully. This is an implemented starter backend with FastAPI + LangGraph orchestration and provider-backed strategist logic. Scraping, LaTeX rendering, vector-RAG, and browser submission are still placeholder integrations to complete next.
 Not fully. This is now an **implemented starter backend** with real orchestration foundations (FastAPI + LangGraph + optional LangChain model usage), but scraping, LaTeX rendering, and browser submission are still placeholder integrations to complete next.
 
 ## What is implemented now
 
 - FastAPI service and background workflow execution.
 - SQLite application ledger (`Pending` → `Found` → `Tailored` → `Applied`/`Failed`).
+- LangGraph state graph with explicit node flow:
 - **LangGraph** state graph with explicit node flow:
   - Scout
   - Strategist
   - Adapter
   - Executioner
+- LangChain model integration in Strategist with provider selection:
+  - Google AI Studio (`GOOGLE_API_KEY`) via `langchain-google-genai`
+  - OpenAI (`OPENAI_API_KEY`) via `langchain-openai`
+- Deterministic fallback logic when no provider key is configured.
+- `.env` configuration via `pydantic-settings` and `.env.example` template.
 - **LangChain/OpenAI integration path** in Strategist node when `OPENAI_API_KEY` is configured.
 - Deterministic fallback logic when API key is not configured.
 - `.env` based configuration with `pydantic-settings` and `.env.example` template.
@@ -34,12 +41,21 @@ Not fully. This is now an **implemented starter backend** with real orchestratio
    pip install -r requirements.txt
    ```
 
+3. Add your Google AI Studio key in `.env`:
+
+   ```dotenv
+   LLM_PROVIDER=google
+   GOOGLE_API_KEY=your_key_here
+   ```
+
+4. Run API:
 3. Run API:
 
    ```bash
    uvicorn app.main:app --reload
    ```
 
+5. Submit a job URL:
 4. Submit a job URL:
 
    ```bash
@@ -48,6 +64,7 @@ Not fully. This is now an **implemented starter backend** with real orchestratio
      -d '{"job_url":"https://example.com/job/123"}'
    ```
 
+6. Check applications:
 5. Check applications:
 
    ```bash
@@ -60,6 +77,10 @@ Use `.env` (from `.env.example`):
 
 - `APP_NAME`
 - `APP_VERSION`
+- `LLM_PROVIDER` (`google` or `openai`)
+- `LLM_MODEL` (e.g. `gemini-1.5-flash`)
+- `GOOGLE_API_KEY` (for Google AI Studio)
+- `OPENAI_API_KEY` (optional fallback provider)
 - `OPENAI_API_KEY` (optional; enables model-assisted Strategist step)
 
 ## Current API

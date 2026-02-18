@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Any, TypedDict
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, START, StateGraph
 from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -65,6 +70,16 @@ class DomainWorkflow:
         return state
 
     def strategist_node(self, state: GraphState) -> GraphState:
+        model = self._build_llm()
+        if model is not None:
+            prompt = (
+                "Extract skills and choose matching project themes for this JD. "
+                "Return strict JSON with keys extracted_skills (list[str]) and selected_projects (list[str]).\n"
+                f"JD:\n{state['job_description']}"
+            )
+            response = model.invoke(prompt)
+            content = self._response_text(response)
+            parsed = self._safe_parse_json(content)
         if settings.openai_api_key:
             prompt = (
                 "Extract skills and choose matching project themes for this JD. "
@@ -108,6 +123,29 @@ class DomainWorkflow:
             resume_pdf_path=state["resume_pdf_path"],
         )
         return state
+
+    def _build_llm(self) -> Any | None:
+        if settings.llm_provider == "google" and settings.google_api_key:
+            return ChatGoogleGenerativeAI(model=settings.llm_model, temperature=0)
+
+        if settings.llm_provider == "openai" and settings.openai_api_key:
+            return ChatOpenAI(model=settings.llm_model, temperature=0)
+
+        return None
+
+    def _response_text(self, response: Any) -> str:
+        content = getattr(response, "content", "")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, dict) and "text" in item:
+                    parts.append(str(item["text"]))
+                else:
+                    parts.append(str(item))
+            return "\n".join(parts)
+        return str(content)
 
     def _safe_parse_json(self, content: str) -> dict:
         match = re.search(r"\{.*\}", content, re.S)
