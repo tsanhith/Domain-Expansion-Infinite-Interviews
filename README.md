@@ -88,21 +88,6 @@ Use `.env` (from `.env.example`):
 - `GOOGLE_API_KEY` (for Google AI Studio)
 - `OPENAI_API_KEY` (optional fallback provider)
 
-
-## Troubleshooting (Windows import error)
-
-If Uvicorn crashes with `ImportError: cannot import name genai from google`, it usually means the Google SDK is not installed correctly or a conflicting `google` namespace package exists.
-
-Try:
-
-```bash
-pip uninstall -y google google-generativeai langchain-google-genai
-pip install --upgrade pip
-pip install google-genai
-```
-
-The app now lazy-loads `google.genai` at runtime, so missing SDKs no longer crash startup; it will fall back to deterministic local logic if provider loading fails.
-
 ## Current API
 
 - `GET /`

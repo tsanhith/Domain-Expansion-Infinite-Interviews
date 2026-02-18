@@ -4,6 +4,7 @@ import json
 import re
 from typing import Any, TypedDict
 
+from google import genai
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 
@@ -121,10 +122,7 @@ class DomainWorkflow:
 
     def _invoke_google(self, prompt: str) -> str:
         try:
-            import importlib
-
-            genai_mod = importlib.import_module("google.genai")
-            client = genai_mod.Client(api_key=settings.google_api_key)
+            client = genai.Client(api_key=settings.google_api_key)
             response = client.models.generate_content(model=settings.llm_model, contents=prompt)
             return getattr(response, "text", "") or ""
         except Exception:
