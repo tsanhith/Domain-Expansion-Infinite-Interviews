@@ -7,6 +7,10 @@ from typing import Any, TypedDict
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
+from typing import TypedDict
+
+from langgraph.graph import END, START, StateGraph
+from langchain_openai import ChatOpenAI
 
 from app import db
 from app.schemas import WorkflowState
@@ -76,6 +80,15 @@ class DomainWorkflow:
             response = model.invoke(prompt)
             content = self._response_text(response)
             parsed = self._safe_parse_json(content)
+        if settings.openai_api_key:
+            prompt = (
+                "Extract skills and choose matching project themes for this JD. "
+                "Return JSON with keys extracted_skills (list[str]) and selected_projects (list[str]).\n"
+                f"JD:\n{state['job_description']}"
+            )
+            model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+            response = model.invoke(prompt)
+            parsed = self._safe_parse_json(response.content)
             state["extracted_skills"] = parsed.get("extracted_skills", [])
             state["selected_projects"] = parsed.get("selected_projects", [])
 

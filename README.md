@@ -5,12 +5,14 @@ A stateful job-application automation system that treats your placement hunt lik
 ## Is it finished?
 
 Not fully. This is an implemented starter backend with FastAPI + LangGraph orchestration and provider-backed strategist logic. Scraping, LaTeX rendering, vector-RAG, and browser submission are still placeholder integrations to complete next.
+Not fully. This is now an **implemented starter backend** with real orchestration foundations (FastAPI + LangGraph + optional LangChain model usage), but scraping, LaTeX rendering, and browser submission are still placeholder integrations to complete next.
 
 ## What is implemented now
 
 - FastAPI service and background workflow execution.
 - SQLite application ledger (`Pending` → `Found` → `Tailored` → `Applied`/`Failed`).
 - LangGraph state graph with explicit node flow:
+- **LangGraph** state graph with explicit node flow:
   - Scout
   - Strategist
   - Adapter
@@ -20,6 +22,9 @@ Not fully. This is an implemented starter backend with FastAPI + LangGraph orche
   - OpenAI (`OPENAI_API_KEY`) via `langchain-openai`
 - Deterministic fallback logic when no provider key is configured.
 - `.env` configuration via `pydantic-settings` and `.env.example` template.
+- **LangChain/OpenAI integration path** in Strategist node when `OPENAI_API_KEY` is configured.
+- Deterministic fallback logic when API key is not configured.
+- `.env` based configuration with `pydantic-settings` and `.env.example` template.
 - Basic API tests.
 
 ## Quickstart
@@ -44,12 +49,14 @@ Not fully. This is an implemented starter backend with FastAPI + LangGraph orche
    ```
 
 4. Run API:
+3. Run API:
 
    ```bash
    uvicorn app.main:app --reload
    ```
 
 5. Submit a job URL:
+4. Submit a job URL:
 
    ```bash
    curl -X POST http://127.0.0.1:8000/apply \
@@ -58,6 +65,7 @@ Not fully. This is an implemented starter backend with FastAPI + LangGraph orche
    ```
 
 6. Check applications:
+5. Check applications:
 
    ```bash
    curl http://127.0.0.1:8000/applications
@@ -73,6 +81,7 @@ Use `.env` (from `.env.example`):
 - `LLM_MODEL` (e.g. `gemini-1.5-flash`)
 - `GOOGLE_API_KEY` (for Google AI Studio)
 - `OPENAI_API_KEY` (optional fallback provider)
+- `OPENAI_API_KEY` (optional; enables model-assisted Strategist step)
 
 ## Current API
 
@@ -80,6 +89,26 @@ Use `.env` (from `.env.example`):
 - `POST /apply`
 - `GET /applications`
 - `GET /applications/{id}`
+
+## Architecture snapshot
+
+### Gateway: FastAPI
+
+- Receives incoming jobs.
+- Persists initial record.
+- Starts background workflow.
+
+### Orchestration: LangGraph
+
+- Strict state graph with deterministic node order.
+- Shared state fields:
+  - `job_url`
+  - `job_description`
+  - `extracted_skills`
+  - `selected_projects`
+  - `resume_pdf_path`
+  - `application_status`
+  - `error_log`
 
 ## Remaining build items
 
