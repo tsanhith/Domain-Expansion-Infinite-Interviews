@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-1.5-flash"
 
     google_api_key: str | None = Field(default=None, alias="GOOGLE_API_KEY")
-    app_version: str = "0.2.0"
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
 
 

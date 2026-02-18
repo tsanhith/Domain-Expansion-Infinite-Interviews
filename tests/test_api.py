@@ -19,6 +19,22 @@ def teardown_module() -> None:
         db.DB_PATH.unlink()
 
 
+def test_root_and_health() -> None:
+    client = TestClient(app)
+
+    root_response = client.get("/")
+    assert root_response.status_code == 200
+    root_body = root_response.json()
+    assert root_body["status"] == "running"
+
+    favicon_response = client.get("/favicon.ico")
+    assert favicon_response.status_code == 204
+
+    health_response = client.get("/health")
+    assert health_response.status_code == 200
+    assert health_response.json() == {"status": "ok"}
+
+
 def test_apply_flow_completes() -> None:
     client = TestClient(app)
 

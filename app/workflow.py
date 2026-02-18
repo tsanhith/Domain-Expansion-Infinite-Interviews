@@ -4,13 +4,8 @@ import json
 import re
 from typing import Any, TypedDict
 
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from typing import TypedDict
-
-from langgraph.graph import END, START, StateGraph
-from langchain_openai import ChatOpenAI
 
 from app import db
 from app.schemas import WorkflowState
@@ -70,25 +65,14 @@ class DomainWorkflow:
         return state
 
     def strategist_node(self, state: GraphState) -> GraphState:
-        model = self._build_llm()
-        if model is not None:
-            prompt = (
-                "Extract skills and choose matching project themes for this JD. "
-                "Return strict JSON with keys extracted_skills (list[str]) and selected_projects (list[str]).\n"
-                f"JD:\n{state['job_description']}"
-            )
-            response = model.invoke(prompt)
-            content = self._response_text(response)
+        prompt = (
+            "Extract skills and choose matching project themes for this JD. "
+            "Return strict JSON with keys extracted_skills (list[str]) and selected_projects (list[str]).\n"
+            f"JD:\n{state['job_description']}"
+        )
+        content = self._invoke_model(prompt)
+        if content:
             parsed = self._safe_parse_json(content)
-        if settings.openai_api_key:
-            prompt = (
-                "Extract skills and choose matching project themes for this JD. "
-                "Return JSON with keys extracted_skills (list[str]) and selected_projects (list[str]).\n"
-                f"JD:\n{state['job_description']}"
-            )
-            model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-            response = model.invoke(prompt)
-            parsed = self._safe_parse_json(response.content)
             state["extracted_skills"] = parsed.get("extracted_skills", [])
             state["selected_projects"] = parsed.get("selected_projects", [])
 
@@ -124,14 +108,27 @@ class DomainWorkflow:
         )
         return state
 
-    def _build_llm(self) -> Any | None:
+    def _invoke_model(self, prompt: str) -> str:
         if settings.llm_provider == "google" and settings.google_api_key:
-            return ChatGoogleGenerativeAI(model=settings.llm_model, temperature=0)
+            return self._invoke_google(prompt)
 
         if settings.llm_provider == "openai" and settings.openai_api_key:
-            return ChatOpenAI(model=settings.llm_model, temperature=0)
+            model = ChatOpenAI(model=settings.llm_model, temperature=0)
+            response = model.invoke(prompt)
+            return self._response_text(response)
 
-        return None
+        return ""
+
+    def _invoke_google(self, prompt: str) -> str:
+        try:
+            import importlib
+
+            genai_mod = importlib.import_module("google.genai")
+            client = genai_mod.Client(api_key=settings.google_api_key)
+            response = client.models.generate_content(model=settings.llm_model, contents=prompt)
+            return getattr(response, "text", "") or ""
+        except Exception:
+            return ""
 
     def _response_text(self, response: Any) -> str:
         content = getattr(response, "content", "")

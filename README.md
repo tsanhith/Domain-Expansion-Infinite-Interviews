@@ -5,26 +5,27 @@ A stateful job-application automation system that treats your placement hunt lik
 ## Is it finished?
 
 Not fully. This is an implemented starter backend with FastAPI + LangGraph orchestration and provider-backed strategist logic. Scraping, LaTeX rendering, vector-RAG, and browser submission are still placeholder integrations to complete next.
-Not fully. This is now an **implemented starter backend** with real orchestration foundations (FastAPI + LangGraph + optional LangChain model usage), but scraping, LaTeX rendering, and browser submission are still placeholder integrations to complete next.
+
+## What changed for your latest issue
+
+- Added `GET /` so opening `http://127.0.0.1:8000/` returns a status payload instead of 404.
+- Added `GET /favicon.ico` returning `204` so browser favicon requests no longer produce noisy 404 logs.
+- Replaced deprecated Google LangChain integration path with the newer `google-genai` SDK path for Google AI Studio keys.
 
 ## What is implemented now
 
 - FastAPI service and background workflow execution.
 - SQLite application ledger (`Pending` → `Found` → `Tailored` → `Applied`/`Failed`).
 - LangGraph state graph with explicit node flow:
-- **LangGraph** state graph with explicit node flow:
   - Scout
   - Strategist
   - Adapter
   - Executioner
-- LangChain model integration in Strategist with provider selection:
-  - Google AI Studio (`GOOGLE_API_KEY`) via `langchain-google-genai`
+- Strategist model integration with provider selection:
+  - Google AI Studio (`GOOGLE_API_KEY`) via `google-genai`
   - OpenAI (`OPENAI_API_KEY`) via `langchain-openai`
 - Deterministic fallback logic when no provider key is configured.
 - `.env` configuration via `pydantic-settings` and `.env.example` template.
-- **LangChain/OpenAI integration path** in Strategist node when `OPENAI_API_KEY` is configured.
-- Deterministic fallback logic when API key is not configured.
-- `.env` based configuration with `pydantic-settings` and `.env.example` template.
 - Basic API tests.
 
 ## Quickstart
@@ -45,18 +46,24 @@ Not fully. This is now an **implemented starter backend** with real orchestratio
 
    ```dotenv
    LLM_PROVIDER=google
+   LLM_MODEL=gemini-1.5-flash
    GOOGLE_API_KEY=your_key_here
    ```
 
 4. Run API:
-3. Run API:
 
    ```bash
    uvicorn app.main:app --reload
    ```
 
-5. Submit a job URL:
-4. Submit a job URL:
+5. Validate service:
+
+   ```bash
+   curl http://127.0.0.1:8000/
+   curl http://127.0.0.1:8000/health
+   ```
+
+6. Submit a job URL:
 
    ```bash
    curl -X POST http://127.0.0.1:8000/apply \
@@ -64,8 +71,7 @@ Not fully. This is now an **implemented starter backend** with real orchestratio
      -d '{"job_url":"https://example.com/job/123"}'
    ```
 
-6. Check applications:
-5. Check applications:
+7. Check applications:
 
    ```bash
    curl http://127.0.0.1:8000/applications
@@ -81,34 +87,30 @@ Use `.env` (from `.env.example`):
 - `LLM_MODEL` (e.g. `gemini-1.5-flash`)
 - `GOOGLE_API_KEY` (for Google AI Studio)
 - `OPENAI_API_KEY` (optional fallback provider)
-- `OPENAI_API_KEY` (optional; enables model-assisted Strategist step)
+
+
+## Troubleshooting (Windows import error)
+
+If Uvicorn crashes with `ImportError: cannot import name genai from google`, it usually means the Google SDK is not installed correctly or a conflicting `google` namespace package exists.
+
+Try:
+
+```bash
+pip uninstall -y google google-generativeai langchain-google-genai
+pip install --upgrade pip
+pip install google-genai
+```
+
+The app now lazy-loads `google.genai` at runtime, so missing SDKs no longer crash startup; it will fall back to deterministic local logic if provider loading fails.
 
 ## Current API
 
+- `GET /`
+- `GET /favicon.ico`
 - `GET /health`
 - `POST /apply`
 - `GET /applications`
 - `GET /applications/{id}`
-
-## Architecture snapshot
-
-### Gateway: FastAPI
-
-- Receives incoming jobs.
-- Persists initial record.
-- Starts background workflow.
-
-### Orchestration: LangGraph
-
-- Strict state graph with deterministic node order.
-- Shared state fields:
-  - `job_url`
-  - `job_description`
-  - `extracted_skills`
-  - `selected_projects`
-  - `resume_pdf_path`
-  - `application_status`
-  - `error_log`
 
 ## Remaining build items
 

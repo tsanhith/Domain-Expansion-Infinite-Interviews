@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Response
 
 from app import db
 from app.schemas import ApplicationRecord, ApplyRequest, WorkflowState
@@ -14,6 +14,20 @@ workflow = DomainWorkflow()
 @app.on_event("startup")
 def on_startup() -> None:
     db.init_db()
+
+
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "name": settings.app_name,
+        "version": settings.app_version,
+        "status": "running",
+    }
+
+
+@app.get("/favicon.ico")
+def favicon() -> Response:
+    return Response(status_code=204)
 
 
 @app.get("/health")
